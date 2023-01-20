@@ -55,7 +55,7 @@ async def post_rentals() -> Response:
 
     response = post_data_from_service(
         'http://' + os.environ['CARS_SERVICE_HOST'] + ':' + os.environ['CARS_SERVICE_PORT']
-        + '/api/v1/cars/' + body['carUid'] + '/order', timeout=5)
+        + '/api/v1/cars/' + body['carUid'] + '/order', timeout=10)
 
     if response is None:
         return Response(
@@ -65,6 +65,7 @@ async def post_rentals() -> Response:
                 'errors': ['Car service is unavailable.']
             })
         )
+
     if response.status_code == 404 or response.status_code == 403:
         return Response(
             status=response.status_code,
@@ -74,22 +75,22 @@ async def post_rentals() -> Response:
 
     car = response.json()
     price = (datetime.datetime.strptime(body['dateTo'], "%Y-%m-%d").date() - \
-            datetime.datetime.strptime(body['dateFrom'], "%Y-%m-%d").date()).days * car['price']
+             datetime.datetime.strptime(body['dateFrom'], "%Y-%m-%d").date()).days * car['price']
 
     response = post_data_from_service(
         'http://' + os.environ['PAYMENT_SERVICE_HOST'] + ':' + os.environ['PAYMENT_SERVICE_PORT']
-        + '/api/v1/payment/', timeout=5, data={'price': price})
+        + '/api/v1/payment/', timeout=10, data={'price': price})
 
     if response is None:
         response = delete_data_from_service(
             'http://' + os.environ['CARS_SERVICE_HOST'] + ':' + os.environ['CARS_SERVICE_PORT']
-            + '/api/v1/cars/' + body['carUid'] + '/order', timeout=5)
+            + '/api/v1/cars/' + body['carUid'] + '/order', timeout=10)
 
         return Response(
             status=503,
             content_type='application/json',
             response=json.dumps({
-                'errors': ['Payment service is unavailable.']
+                'message': 'Payment Service unavailable'
             })
         )
 
@@ -98,15 +99,15 @@ async def post_rentals() -> Response:
 
     response = post_data_from_service(
         'http://' + os.environ['RENTAL_SERVICE_HOST'] + ':' + os.environ['RENTAL_SERVICE_PORT']
-        + '/api/v1/rental/', timeout=5, data=body, headers={'X-User-Name': request.headers['X-User-Name']})
+        + '/api/v1/rental/', timeout=10, data=body, headers={'X-User-Name': request.headers['X-User-Name']})
 
     if response is None:
         response = delete_data_from_service(
             'http://' + os.environ['CARS_SERVICE_HOST'] + ':' + os.environ['CARS_SERVICE_PORT']
-            + '/api/v1/cars/' + body['carUid'] + '/order', timeout=5)
+            + '/api/v1/cars/' + body['carUid'] + '/order', timeout=10)
         response = delete_data_from_service(
             'http://' + os.environ['PAYMENT_SERVICE_HOST'] + ':' + os.environ['PAYMENT_SERVICE_PORT']
-            + '/api/v1/payment/' + body['paymentUid'], timeout=5)
+            + '/api/v1/payment/' + body['paymentUid'], timeout=10)
         return Response(
             status=503,
             content_type='application/json',
@@ -132,5 +133,3 @@ async def post_rentals() -> Response:
         content_type='application/json',
         response=json.dumps(rental)
     )
-
-
