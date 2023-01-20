@@ -1,6 +1,8 @@
 import os
+import json
 import time
-from quart import Blueprint, Response
+
+from quart import Blueprint, Response, request
 from gateway.service_requests import delete_data_from_service, post_data_from_service
 
 delete_rental_blueprint = Blueprint('delete_rental', __name__, )
@@ -10,7 +12,7 @@ delete_rental_blueprint = Blueprint('delete_rental', __name__, )
 async def delete_rental(rentalUid: str) -> Response:
     response = delete_data_from_service(
         'http://' + os.environ['RENTAL_SERVICE_HOST'] + ':' + os.environ['RENTAL_SERVICE_PORT']
-        + '/api/v1/rental/'+rentalUid, timeout=15)
+        + '/api/v1/rental/'+rentalUid, timeout=10)
 
     while response is None:
         time.sleep(10)
